@@ -216,9 +216,11 @@ M.tablist = function()
 end
 
 M.buttons = function()
-  local toggle_themeBtn = "%@TbToggle_theme@%#TbLineThemeToggleBtn#" .. vim.g.toggle_theme_icon .. "%X"
+  -- local toggle_themeBtn = "%@TbToggle_theme@%#TbLineThemeToggleBtn#" .. vim.g.toggle_theme_icon .. "%X"
+  -- local CloseAllBufsBtn = "%@TbCloseAllBufs@%#TbLineCloseAllBufsBtn#" .. "  " .. "%X"
+  -- return toggle_themeBtn .. CloseAllBufsBtn
   local CloseAllBufsBtn = "%@TbCloseAllBufs@%#TbLineCloseAllBufsBtn#" .. "  " .. "%X"
-  return toggle_themeBtn .. CloseAllBufsBtn
+  return CloseAllBufsBtn
 end
 
 return M
