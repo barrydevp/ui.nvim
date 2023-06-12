@@ -3,7 +3,7 @@ local devicons_present, devicons = pcall(require, "nvim-web-devicons")
 local fn = vim.fn
 
 return function(tabufline_config)
-  require("base46").load_highlight "tbline"
+  -- require("base46").load_highlight "tbline"
   -- dofile(vim.g.base46_cache .. "tbline")
 
   local isBufValid = function(bufnr)
