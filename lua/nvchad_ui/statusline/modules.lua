@@ -174,7 +174,4 @@ M.cursor_position = function()
   return left_sep .. "%#St_pos_text#" .. " " .. text .. " "
 end
 
-M.run = function()
-end
-
 return M
