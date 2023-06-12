@@ -1,10 +1,6 @@
 local M = {}
 local api = vim.api
 
-M.isBufValid = function(bufnr)
-  return vim.api.nvim_buf_is_valid(bufnr) and vim.bo[bufnr].buflisted
-end
-
 M.bufilter = function()
   local bufs = vim.t.bufs or nil
 
@@ -13,7 +9,7 @@ M.bufilter = function()
   end
 
   for i = #bufs, 1, -1 do
-    if not M.isBufValid(bufs[i]) then
+    if not vim.api.nvim_buf_is_valid(bufs[i]) and vim.bo[bufs[i]].buflisted then
       table.remove(bufs, i)
     end
   end
@@ -21,26 +17,36 @@ M.bufilter = function()
   return bufs
 end
 
-M.tabuflineNext = function()
-  local bufs = M.bufilter() or {}
-
-  for i, v in ipairs(bufs) do
-    if api.nvim_get_current_buf() == v then
-      vim.cmd(i == #bufs and "b" .. bufs[1] or "b" .. bufs[i + 1])
-      break
+M.getBufIndex = function(bufnr)
+  for i, value in ipairs(vim.t.bufs) do
+    if value == bufnr then
+      return i
     end
   end
 end
 
+M.tabuflineNext = function()
+  local bufs = M.bufilter() or {}
+  local curbufIndex = M.getBufIndex(api.nvim_get_current_buf())
+
+  if not curbufIndex then
+    vim.cmd("b" .. vim.t.bufs[1])
+    return
+  end
+
+  vim.cmd(curbufIndex == #bufs and "b" .. bufs[1] or "b" .. bufs[curbufIndex + 1])
+end
+
 M.tabuflinePrev = function()
   local bufs = M.bufilter() or {}
+  local curbufIndex = M.getBufIndex(api.nvim_get_current_buf())
 
-  for i, v in ipairs(bufs) do
-    if api.nvim_get_current_buf() == v then
-      vim.cmd(i == 1 and "b" .. bufs[#bufs] or "b" .. bufs[i - 1])
-      break
-    end
+  if not curbufIndex then
+    vim.cmd("b" .. vim.t.bufs[1])
+    return
   end
+
+  vim.cmd(curbufIndex == 1 and "b" .. bufs[#bufs] or "b" .. bufs[curbufIndex - 1])
 end
 
 M.close_buffer = function(bufnr)
@@ -48,9 +54,33 @@ M.close_buffer = function(bufnr)
     vim.cmd(vim.bo.buflisted and "set nobl | enew" or "hide")
   else
     bufnr = bufnr or api.nvim_get_current_buf()
-    require("nvchad_ui.tabufline").tabuflinePrev()
-    vim.cmd("confirm bd" .. bufnr)
+    local curBufIndex = M.getBufIndex(bufnr)
+    local bufhidden = vim.bo.bufhidden
+
+    -- force close floating wins
+    if bufhidden == "wipe" then
+      vim.cmd "bw"
+      return
+
+      -- handle listed bufs
+    elseif curBufIndex and #vim.t.bufs > 1 then
+      local newBufIndex = curBufIndex == #vim.t.bufs and -1 or 1
+      vim.cmd("b" .. vim.t.bufs[curBufIndex + newBufIndex])
+
+    -- handle unlisted
+    elseif not vim.bo.buflisted then
+      vim.cmd("b" .. vim.t.bufs[1] .. " | bw" .. bufnr)
+      return
+    else
+      vim.cmd "enew"
+    end
+
+    if not (bufhidden == "delete") then
+      vim.cmd("confirm bd" .. bufnr)
+    end
   end
+
+  vim.cmd "redrawtabline"
 end
 
 -- closes tab + all of its buffers
@@ -70,15 +100,24 @@ M.closeAllBufs = function(action)
   end
 end
 
--- closes tab + all other buffers except the current one
-M.closeOtherBufs = function(action)
-  if action == "closeTab" then
-    vim.cmd "tabclose"
-  end
-
+-- closes all bufs except current one
+M.closeOtherBufs = function()
   for _, buf in ipairs(vim.t.bufs) do
     if buf ~= api.nvim_get_current_buf() then
-      vim.cmd("bd " .. buf)
+      vim.api.nvim_buf_delete(buf, {})
+    end
+  end
+
+  vim.cmd "redrawtabline"
+end
+
+-- closes all other buffers right or left
+M.closeBufs_at_direction = function(x)
+  local bufindex = M.getBufIndex(api.nvim_get_current_buf())
+
+  for i, bufnr in ipairs(vim.t.bufs) do
+    if (x == "left" and i < bufindex) or (x == "right" and i > bufindex) then
+      M.close_buffer(bufnr)
     end
   end
 end
@@ -100,18 +139,6 @@ M.move_buf = function(n)
 
   vim.t.bufs = bufs
   vim.cmd "redrawtabline"
-end
-
-M.run = function(opts)
-  local modules = require "nvchad_ui.tabufline.modules"
-
-  -- merge user modules :D
-  if opts.overriden_modules then
-    modules = vim.tbl_deep_extend("force", modules, opts.overriden_modules())
-  end
-
-  local result = modules.bufferlist() .. (modules.tablist() or "") .. modules.buttons()
-  return (not vim.g.nvimtree_side or vim.g.nvimtree_side == "left") and modules.CoverNvimTree() .. result or result .. modules.CoverNvimTree()
 end
 
 return M
