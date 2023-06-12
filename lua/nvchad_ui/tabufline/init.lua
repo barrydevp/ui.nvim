@@ -142,7 +142,7 @@ M.move_buf = function(n)
 end
 
 M.run = function(opts)
-  local modules = require "nvchad_ui.tabufline.modules"(opts)
+  local modules = require("nvchad_ui.tabufline.modules")(opts)
 
   -- merge user modules :D
   if opts.overriden_modules then
