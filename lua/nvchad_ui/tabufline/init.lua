@@ -67,7 +67,7 @@ M.close_buffer = function(bufnr)
       local newBufIndex = curBufIndex == #vim.t.bufs and -1 or 1
       vim.cmd("b" .. vim.t.bufs[curBufIndex + newBufIndex])
 
-      -- handle unlisted
+    -- handle unlisted
     elseif not vim.bo.buflisted then
       vim.cmd("b" .. vim.t.bufs[1] .. " | bw" .. bufnr)
       return
@@ -139,18 +139,6 @@ M.move_buf = function(n)
 
   vim.t.bufs = bufs
   vim.cmd "redrawtabline"
-end
-
-M.run = function(opts)
-  local modules = require("nvchad_ui.tabufline.modules")(opts)
-
-  -- merge user modules :D
-  if opts.overriden_modules then
-    modules = vim.tbl_deep_extend("force", modules, opts.overriden_modules())
-  end
-
-  local result = modules.bufferlist() .. (modules.tablist() or "") .. modules.buttons()
-  return (vim.g.nvimtree_side == "left") and modules.CoverNvimTree() .. result or result .. modules.CoverNvimTree()
 end
 
 return M
