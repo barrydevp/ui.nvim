@@ -141,6 +141,8 @@ end
 -- require("base46").load_highlight "tbline"
 -- dofile(vim.g.base46_cache .. "tbline")
 
+local M = {}
+
 M.CoverNvimTree = function()
   return "%#NvimTreeNormal#" .. (vim.g.nvimtree_side == "right" and "" or string.rep(" ", getNvimTreeWidth()))
 end
@@ -171,8 +173,6 @@ M.bufferlist = function()
 end
 
 vim.g.TbTabsToggled = 0
-
-local M = {}
 
 M.tablist = function()
   local result, number_of_tabs = "", fn.tabpagenr "$"
