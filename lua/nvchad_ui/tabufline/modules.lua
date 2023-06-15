@@ -2,9 +2,7 @@ local api = vim.api
 local devicons_present, devicons = pcall(require, "nvim-web-devicons")
 local fn = vim.fn
 
-local M = {}
-
-M.tabufline_config = {}
+local tabufline_config = {}
 
 local isBufValid = function(bufnr)
   return vim.api.nvim_buf_is_valid(bufnr) and vim.bo[bufnr].buflisted
@@ -116,7 +114,7 @@ local function styleBufferTab(nr)
   name = "%" .. nr .. "@TbGoToBuf@" .. add_fileInfo(name, nr) .. "%X"
 
   -- add numbers to each tab in tabufline
-  if M.tabufline_config.show_numbers then
+  if tabufline_config.show_numbers then
     for index, value in ipairs(vim.t.bufs) do
       if nr == value then
         name = name .. index
@@ -174,6 +172,8 @@ end
 
 vim.g.TbTabsToggled = 0
 
+local M = {}
+
 M.tablist = function()
   local result, number_of_tabs = "", fn.tabpagenr "$"
 
@@ -198,13 +198,12 @@ M.buttons = function()
   return toggle_themeBtn .. CloseAllBufsBtn
 end
 
-M.run = function(opts)
-  M.tabufline_config = opts
-  local modules = M
+M.run = function()
+  local modules = require "nvchad_ui.tabufline.modules"
 
   -- merge user modules :D
-  if opts.overriden_modules then
-    modules = vim.tbl_deep_extend("force", modules, opts.overriden_modules())
+  if tabufline_config.overriden_modules then
+    modules = vim.tbl_deep_extend("force", modules, tabufline_config.overriden_modules())
   end
 
   local result = modules.bufferlist() .. (modules.tablist() or "") .. modules.buttons()
