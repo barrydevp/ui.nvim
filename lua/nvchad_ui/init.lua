@@ -8,20 +8,20 @@ if config.tabufline.enabled then
 end
 
 -- Command to toggle NvDash
-new_cmd("Nvdash", function()
-  if vim.g.nvdash_displayed then
-    vim.cmd "bd"
-  else
-    require("nvchad_ui.nvdash").open(vim.api.nvim_create_buf(false, true))
-  end
-end, {})
-
--- load nvdash
-if config.nvdash.load_on_startup then
-  vim.defer_fn(function()
-    require("nvchad_ui.nvdash").open()
-  end, 0)
-end
+-- new_cmd("Nvdash", function()
+--   if vim.g.nvdash_displayed then
+--     vim.cmd "bd"
+--   else
+--     require("nvchad_ui.nvdash").open(vim.api.nvim_create_buf(false, true))
+--   end
+-- end, {})
+--
+-- -- load nvdash
+-- if config.nvdash.load_on_startup then
+--   vim.defer_fn(function()
+--     require("nvchad_ui.nvdash").open()
+--   end, 0)
+-- end
 
 -- command to toggle cheatsheet
 new_cmd("NvCheatsheet", function()
