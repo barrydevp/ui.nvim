@@ -2,12 +2,14 @@ dofile(vim.g.base46_cache .. "nvcheatsheet")
 
 local nvcheatsheet = vim.api.nvim_create_namespace "nvcheatsheet"
 local mappings_tb = require("core.utils").load_config().mappings
-local isValid_mapping_TB = require("nvchad_ui.cheatsheet").isValid_mapping_TB
+local isValid_mapping_TB = require("nvchad.cheatsheet").isValid_mapping_TB
 
 -- filter mappings_tb i.e remove tb which have empty fields
 for title, val in pairs(mappings_tb) do
-  if not isValid_mapping_TB(val) then
-    mappings_tb[title] = nil
+  for mode, mappings in pairs(val) do
+    if not isValid_mapping_TB(mappings) then
+      mappings_tb[title][mode] = nil
+    end
   end
 end
 
@@ -33,12 +35,13 @@ local ascii = {
 
 -- basically the draw function
 return function()
+  vim.g.nv_previous_buf = vim.api.nvim_get_current_buf()
   local buf = vim.api.nvim_create_buf(false, true)
 
   -- add left padding (strs) to ascii so it looks centered
   local ascii_header = vim.tbl_values(ascii)
 
-  local win = require("nvchad_ui.cheatsheet").getLargestWin()
+  local win = require("nvchad.cheatsheet").getLargestWin()
   vim.api.nvim_set_current_win(win)
 
   local ascii_padding = (vim.api.nvim_win_get_width(win) / 2) - (#ascii_header[1] / 2)
@@ -302,9 +305,10 @@ return function()
   vim.opt_local.wrap = false
   vim.opt_local.relativenumber = false
   vim.opt_local.cul = false
+  vim.opt_local.colorcolumn = "0"
   vim.g.nvcheatsheet_displayed = true
 
   vim.keymap.set("n", "<ESC>", function()
-    require("nvchad_ui.tabufline").close_buffer(buf)
+    require("nvchad.tabufline").close_buffer(buf)
   end, { buffer = buf }) -- use ESC to close
 end

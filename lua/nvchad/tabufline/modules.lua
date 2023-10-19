@@ -14,13 +14,13 @@ vim.cmd "function! TbGoToBuf(bufnr,b,c,d) \n execute 'b'..a:bufnr \n endfunction
 
 vim.cmd [[
    function! TbKillBuf(bufnr,b,c,d) 
-        call luaeval('require("nvchad_ui.tabufline").close_buffer(_A)', a:bufnr)
+        call luaeval('require("nvchad.tabufline").close_buffer(_A)', a:bufnr)
   endfunction]]
 
 vim.cmd "function! TbNewTab(a,b,c,d) \n tabnew \n endfunction"
 vim.cmd "function! TbGotoTab(tabnr,b,c,d) \n execute a:tabnr ..'tabnext' \n endfunction"
-vim.cmd "function! TbTabClose(a,b,c,d) \n lua require('nvchad_ui.tabufline').closeAllBufs('closeTab') \n endfunction"
-vim.cmd "function! TbCloseAllBufs(a,b,c,d) \n lua require('nvchad_ui.tabufline').closeAllBufs() \n endfunction"
+vim.cmd "function! TbTabClose(a,b,c,d) \n lua require('nvchad.tabufline').closeAllBufs('closeTab') \n endfunction"
+vim.cmd "function! TbCloseAllBufs(a,b,c,d) \n lua require('nvchad.tabufline').closeAllBufs() \n endfunction"
 vim.cmd "function! TbToggle_theme(a,b,c,d) \n lua require('base46').toggle_theme() \n endfunction"
 vim.cmd "function! TbToggleTabs(a,b,c,d) \n let g:TbTabsToggled = !g:TbTabsToggled | redrawtabline \n endfunction"
 
@@ -52,7 +52,7 @@ end
 
 local function add_fileInfo(name, bufnr)
   if devicons_present then
-    local icon, icon_hl = devicons.get_icon(name, string.match(name, "%a+$"))
+    local icon, icon_hl = devicons.get_icon(name)
 
     if not icon then
       icon = "󰈚"
@@ -130,7 +130,7 @@ local function styleBufferTab(nr)
       or ("%#TbLineBufOnClose#" .. close_btn)
     name = "%#TbLineBufOn#" .. name .. close_btn
   else
-    close_btn = (vim.bo[nr].modified and "%" .. nr .. "@TbKillBuf@%#TbBufLineBufOffModified#  ")
+    close_btn = (vim.bo[nr].modified and "%" .. nr .. "@TbKillBuf@%#TbLineBufOffModified#  ")
       or ("%#TbLineBufOffClose#" .. close_btn)
     name = "%#TbLineBufOff#" .. name .. close_btn
   end
@@ -141,7 +141,7 @@ end
 ---------------------------------------------------------- components ------------------------------------------------------------
 local M = {}
 
-M.CoverNvimTree = function()
+M.NvimTreeOverlay = function()
   return "%#NvimTreeNormal#" .. (vim.g.nvimtree_side == "right" and "" or string.rep(" ", getNvimTreeWidth()))
 end
 
@@ -188,6 +188,8 @@ M.tablist = function()
     return vim.g.TbTabsToggled == 1 and tabstoggleBtn:gsub("()", { [36] = " " })
       or new_tabtn .. tabstoggleBtn .. result
   end
+
+  return ""
 end
 
 M.buttons = function()
@@ -197,15 +199,21 @@ M.buttons = function()
 end
 
 M.run = function()
-  local modules = require "nvchad_ui.tabufline.modules"
+  local modules = {
+    M.NvimTreeOverlay(),
+    M.bufferlist(),
+    M.tablist(),
+    M.buttons(),
+  }
 
-  -- merge user modules :D
   if tabufline_config.overriden_modules then
-    modules = vim.tbl_deep_extend("force", modules, tabufline_config.overriden_modules())
+    tabufline_config.overriden_modules(modules)
   end
 
-  local result = modules.bufferlist() .. (modules.tablist() or "") .. modules.buttons()
-  return (vim.g.nvimtree_side == "left") and modules.CoverNvimTree() .. result or result .. modules.CoverNvimTree()
+  return table.concat(modules)
 end
+
+-- Credits to Lucario387  https://github.com/NvChad/ui/pull/21/files
+-- For simplyfing the syntax
 
 return M

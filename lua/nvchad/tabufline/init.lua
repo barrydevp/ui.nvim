@@ -8,17 +8,18 @@ M.bufilter = function()
     return {}
   end
 
-  for i = #bufs, 1, -1 do
-    if not vim.api.nvim_buf_is_valid(bufs[i]) and vim.bo[bufs[i]].buflisted then
+  for i, nr in ipairs(bufs) do
+    if not vim.api.nvim_buf_is_valid(nr) then
       table.remove(bufs, i)
     end
   end
 
+  vim.t.bufs = bufs
   return bufs
 end
 
 M.getBufIndex = function(bufnr)
-  for i, value in ipairs(vim.t.bufs) do
+  for i, value in ipairs(M.bufilter()) do
     if value == bufnr then
       return i
     end
@@ -53,6 +54,11 @@ M.close_buffer = function(bufnr)
   if vim.bo.buftype == "terminal" then
     vim.cmd(vim.bo.buflisted and "set nobl | enew" or "hide")
   else
+    if not vim.t.bufs then
+      vim.cmd "bd"
+      return
+    end
+
     bufnr = bufnr or api.nvim_get_current_buf()
     local curBufIndex = M.getBufIndex(bufnr)
     local bufhidden = vim.bo.bufhidden
@@ -69,7 +75,13 @@ M.close_buffer = function(bufnr)
 
     -- handle unlisted
     elseif not vim.bo.buflisted then
-      vim.cmd("b" .. vim.t.bufs[1] .. " | bw" .. bufnr)
+      local tmpbufnr = vim.t.bufs[1]
+
+      if vim.g.nv_previous_buf and vim.api.nvim_buf_is_valid(vim.g.nv_previous_buf) then
+        tmpbufnr = vim.g.nv_previous_buf
+      end
+
+      vim.cmd("b" .. tmpbufnr .. " | bw" .. bufnr)
       return
     else
       vim.cmd "enew"

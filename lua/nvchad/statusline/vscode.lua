@@ -1,6 +1,14 @@
 local fn = vim.fn
 local config = require("core.utils").load_config().ui.statusline
 
+local function stbufnr()
+  return vim.api.nvim_win_get_buf(vim.g.statusline_winid)
+end
+
+local function is_activewin()
+  return vim.api.nvim_get_current_win() == vim.g.statusline_winid
+end
+
 local M = {}
 
 M.modes = {
@@ -48,42 +56,47 @@ M.modes = {
 }
 
 M.mode = function()
+  if not is_activewin() then
+    return ""
+  end
+
   local m = vim.api.nvim_get_mode().mode
   return "%#St_Mode#" .. string.format("  %s ", M.modes[m])
 end
 
 M.fileInfo = function()
   local icon = " 󰈚 "
-  local filename = (fn.expand "%" == "" and "Empty ") or fn.expand "%:t"
+  local path = vim.api.nvim_buf_get_name(stbufnr())
+  local name = (path == "" and "Empty ") or path:match "([^/\\]+)[/\\]*$"
 
-  if filename ~= "Empty " then
+  if name ~= "Empty " then
     local devicons_present, devicons = pcall(require, "nvim-web-devicons")
 
     if devicons_present then
-      local ft_icon = devicons.get_icon(filename)
-      icon = (ft_icon ~= nil and " " .. ft_icon) or ""
+      local ft_icon = devicons.get_icon(name)
+      icon = (ft_icon ~= nil and " " .. ft_icon) or icon
     end
 
-    filename = " " .. filename .. " "
+    name = " " .. name .. " "
   end
 
-  return "%#StText# " .. icon .. filename
+  return "%#StText# " .. icon .. name
 end
 
 M.git = function()
-  if not vim.b.gitsigns_head or vim.b.gitsigns_git_status then
+  if not vim.b[stbufnr()].gitsigns_head or vim.b[stbufnr()].gitsigns_git_status then
     return ""
   end
 
-  return "  " .. vim.b.gitsigns_status_dict.head .. "  "
+  return "  " .. vim.b[stbufnr()].gitsigns_status_dict.head .. "  "
 end
 
 M.gitchanges = function()
-  if not vim.b.gitsigns_head or vim.b.gitsigns_git_status or vim.o.columns < 120 then
+  if not vim.b[stbufnr()].gitsigns_head or vim.b[stbufnr()].gitsigns_git_status or vim.o.columns < 120 then
     return ""
   end
 
-  local git_status = vim.b.gitsigns_status_dict
+  local git_status = vim.b[stbufnr()].gitsigns_status_dict
 
   local added = (git_status.added and git_status.added ~= 0) and ("  " .. git_status.added) or ""
   local changed = (git_status.changed and git_status.changed ~= 0) and ("  " .. git_status.changed) or ""
@@ -94,7 +107,7 @@ end
 
 -- LSP STUFF
 M.LSP_progress = function()
-  if not rawget(vim, "lsp") or vim.lsp.status then
+  if not rawget(vim, "lsp") or vim.lsp.status or not is_activewin() then
     return ""
   end
 
@@ -102,6 +115,12 @@ M.LSP_progress = function()
 
   if vim.o.columns < 120 or not Lsp then
     return ""
+  end
+
+  if Lsp.done then
+    vim.defer_fn(function()
+      vim.cmd.redrawstatus()
+    end, 1000)
   end
 
   local msg = Lsp.message or ""
@@ -124,10 +143,10 @@ M.LSP_Diagnostics = function()
     return " 󰅚 0  0"
   end
 
-  local errors = #vim.diagnostic.get(0, { severity = vim.diagnostic.severity.ERROR })
-  local warnings = #vim.diagnostic.get(0, { severity = vim.diagnostic.severity.WARN })
-  local hints = #vim.diagnostic.get(0, { severity = vim.diagnostic.severity.HINT })
-  local info = #vim.diagnostic.get(0, { severity = vim.diagnostic.severity.INFO })
+  local errors = #vim.diagnostic.get(stbufnr(), { severity = vim.diagnostic.severity.ERROR })
+  local warnings = #vim.diagnostic.get(stbufnr(), { severity = vim.diagnostic.severity.WARN })
+  local hints = #vim.diagnostic.get(stbufnr(), { severity = vim.diagnostic.severity.HINT })
+  local info = #vim.diagnostic.get(stbufnr(), { severity = vim.diagnostic.severity.INFO })
 
   errors = (errors and errors > 0) and ("󰅚 " .. errors .. " ") or "󰅚 0 "
   warnings = (warnings and warnings > 0) and (" " .. warnings .. " ") or " 0 "
@@ -138,17 +157,20 @@ M.LSP_Diagnostics = function()
 end
 
 M.filetype = function()
-  return vim.bo.ft == "" and "{} plain text  " or "{} " .. vim.bo.ft .. " "
+  local ft = vim.bo[stbufnr()].ft
+  return ft == "" and "{} plain text  " or "{} " .. ft .. " "
 end
 
 M.LSP_status = function()
   if rawget(vim, "lsp") then
     for _, client in ipairs(vim.lsp.get_active_clients()) do
-      if client.attached_buffers[vim.api.nvim_get_current_buf()] and client.name ~= "null-ls" then
+      if client.attached_buffers[stbufnr()] and client.name ~= "null-ls" then
         return (vim.o.columns > 100 and " 󰄭  " .. client.name .. "  ") or " 󰄭  LSP  "
       end
     end
   end
+
+  return ""
 end
 
 M.cursor_position = function()
@@ -156,7 +178,8 @@ M.cursor_position = function()
 end
 
 M.file_encoding = function()
-  return string.upper(vim.bo.fileencoding) == "" and "" or "%#St_encode#" .. string.upper(vim.bo.fileencoding) .. "  "
+  local encode = vim.bo[stbufnr()].fileencoding
+  return string.upper(encode) == "" and "" or "%#St_encode#" .. string.upper(encode) .. "  "
 end
 
 M.cwd = function()
@@ -165,29 +188,29 @@ M.cwd = function()
 end
 
 M.run = function()
-  local modules = require "nvchad_ui.statusline.vscode"
+  local modules = {
+    M.mode(),
+    M.fileInfo(),
+    M.git(),
+    M.LSP_Diagnostics(),
+
+    "%=",
+    M.LSP_progress(),
+    "%=",
+
+    M.gitchanges(),
+    M.cursor_position(),
+    M.file_encoding(),
+    M.filetype(),
+    M.LSP_status(),
+    M.cwd(),
+  }
 
   if config.overriden_modules then
-    modules = vim.tbl_deep_extend("force", modules, config.overriden_modules())
+    config.overriden_modules(modules)
   end
 
-  return table.concat {
-    modules.mode(),
-    modules.fileInfo(),
-    modules.git(),
-    modules.LSP_Diagnostics(),
-
-    "%=",
-    modules.LSP_progress(),
-    "%=",
-
-    modules.gitchanges(),
-    modules.cursor_position(),
-    modules.file_encoding(),
-    modules.filetype(),
-    modules.LSP_status() or "",
-    modules.cwd(),
-  }
+  return table.concat(modules)
 end
 
 return M
