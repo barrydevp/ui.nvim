@@ -21,12 +21,12 @@ M.list_themes = function()
 end
 
 M.replace_word = function(old, new)
-  local chadrc = vim.fn.stdpath "config" .. "/lua/custom/" .. "chadrc.lua"
-  local file = io.open(chadrc, "r")
+  local default_conf = vim.fn.stdpath "config" .. "/lua/core/" .. "default_config.lua"
+  local file = io.open(default_conf, "r")
   local added_pattern = string.gsub(old, "-", "%%-") -- add % before - if exists
   local new_content = file:read("*all"):gsub(added_pattern, new)
 
-  file = io.open(chadrc, "w")
+  file = io.open(default_conf, "w")
   file:write(new_content)
   file:close()
 end
