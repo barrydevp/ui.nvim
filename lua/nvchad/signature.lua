@@ -13,7 +13,7 @@ M.signature_window = function(_, result, ctx, config)
         anchor = "SW",
         relative = "cursor",
         row = 0,
-        col = -1,
+        col = 0,
       })
     end
   end
