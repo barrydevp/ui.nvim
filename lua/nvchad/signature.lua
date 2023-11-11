@@ -7,16 +7,16 @@ M.signature_window = function(_, result, ctx, config)
   local bufnr, winner = vim.lsp.handlers.signature_help(_, result, ctx, config)
   local current_cursor_line = vim.api.nvim_win_get_cursor(0)[1]
 
-  if winner then
-    if current_cursor_line > 3 then
-      vim.api.nvim_win_set_config(winner, {
-        anchor = "SW",
-        relative = "cursor",
-        row = 0,
-        col = 0,
-      })
-    end
-  end
+  -- if winner then
+  --   if current_cursor_line > 3 then
+  --     vim.api.nvim_win_set_config(winner, {
+  --       anchor = "SW",
+  --       relative = "cursor",
+  --       row = 0,
+  --       col = 0,
+  --     })
+  --   end
+  -- end
 
   if bufnr and winner then
     return bufnr, winner
