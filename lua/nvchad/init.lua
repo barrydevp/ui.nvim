@@ -16,12 +16,14 @@ end
 --   end
 -- end, {})
 --
--- -- load nvdash
+-- -- load nvdash only on empty file
 -- if config.nvdash.load_on_startup then
 --   vim.defer_fn(function()
---     local bufs = vim.api.nvim_list_bufs()
+--     local buf_lines = vim.api.nvim_buf_get_lines(0, 0, 1, false)
+--     local no_buf_content = vim.api.nvim_buf_line_count(0) == 1 and buf_lines[1] == ""
+--     local bufname = vim.api.nvim_buf_get_name(0)
 --
---     if #vim.fn.argv() == 0 and (#bufs == 1 and bufs[1] == 1) then
+--     if bufname == "" and no_buf_content then
 --       require("nvchad.nvdash").open()
 --     end
 --   end, 0)
